@@ -56,6 +56,9 @@ public class DomGosuslugiParser {
     private static final int TIMEOUT_SECONDS = 30;
     private static final String BASE_URL = "https://dom.gosuslugi.ru";
 
+    private int startPage = 1;
+    private int currentPage = 1;
+
     @Setter
     private ProgressListener listener;
     private AtomicBoolean cancelRequested = new AtomicBoolean(false);
@@ -88,45 +91,8 @@ public class DomGosuslugiParser {
         }
     }
 
-    public void initDriver() {
-        try {
-            // Относительный путь - chromedriver лежит рядом с .exe
-            String chromeDriverPath = "chromedriver.exe";
-
-            // Проверяем наличие chromedriver
-            File chromeDriverFile = new File(chromeDriverPath);
-            if (chromeDriverFile.exists()) {
-                System.setProperty("webdriver.chrome.driver", chromeDriverPath);
-                notifyLog("✅ ChromeDriver найден: " + chromeDriverFile.getAbsolutePath());
-            } else {
-                notifyLog("⚠️ ChromeDriver не найден по пути: " + chromeDriverFile.getAbsolutePath());
-                notifyLog("📥 Поместите chromedriver.exe в ту же папку, где находится программа");
-                throw new RuntimeException("ChromeDriver не найден. Путь: " + chromeDriverFile.getAbsolutePath());
-            }
-
-        } catch (Exception e) {
-            notifyLog("❌ Ошибка настройки ChromeDriver: " + e.getMessage());
-            throw new RuntimeException("Не удалось настроить ChromeDriver", e);
-        }
-
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless=new");
-        options.addArguments("--window-size=1024,768");
-        options.addArguments("--disable-blink-features=AutomationControlled");
-        options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-        options.addArguments("--disable-gpu");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--remote-allow-origins=*");
-
-        try {
-            driver = new ChromeDriver(options);
-            wait = new WebDriverWait(driver, Duration.ofSeconds(TIMEOUT_SECONDS));
-            notifyLog("🚀 Драйвер успешно инициализирован");
-        } catch (Exception e) {
-            notifyLog("❌ Ошибка инициализации драйвера: " + e.getMessage());
-            throw new RuntimeException("Не удалось запустить ChromeDriver", e);
-        }
+    public void setStartPage(int startPage) {
+        this.startPage = Math.max(1, startPage);
     }
 
     public void parseOrganizations() {
@@ -152,7 +118,7 @@ public class DomGosuslugiParser {
 
             selectItemsPerPage("100");
 
-            parseAllPages();
+            parseAllPages(startPage);
 
             notifyLog("📊 Всего найдено компаний: " + companies.size());
 
@@ -172,6 +138,54 @@ public class DomGosuslugiParser {
                 notifyLog("🔴 Браузер закрыт");
             }
         }
+    }
+
+    public void initDriver() {
+        try {
+            // Относительный путь - chromedriver лежит рядом с .exe
+            String chromeDriverPath = "chromedriver.exe";
+
+            // Проверяем наличие chromedriver
+            File chromeDriverFile = new File(chromeDriverPath);
+            if (chromeDriverFile.exists()) {
+                System.setProperty("webdriver.chrome.driver", chromeDriverPath);
+                notifyLog("✅ ChromeDriver найден: " + chromeDriverFile.getAbsolutePath());
+            } else {
+                notifyLog("⚠️ ChromeDriver не найден по пути: " + chromeDriverFile.getAbsolutePath());
+                notifyLog("📥 Поместите chromedriver.exe в ту же папку, где находится программа");
+                throw new RuntimeException("ChromeDriver не найден. Путь: " + chromeDriverFile.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            notifyLog("❌ Ошибка настройки ChromeDriver: " + e.getMessage());
+            throw new RuntimeException("Не удалось настроить ChromeDriver", e);
+        }
+
+        try {
+            driver = new ChromeDriver(createChromeOptions());
+            wait = new WebDriverWait(driver, Duration.ofSeconds(TIMEOUT_SECONDS));
+            notifyLog("🚀 Драйвер успешно инициализирован");
+        } catch (Exception e) {
+            notifyLog("❌ Ошибка инициализации драйвера: " + e.getMessage());
+            throw new RuntimeException("Не удалось запустить ChromeDriver", e);
+        }
+    }
+
+    private ChromeOptions createChromeOptions() {
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless=new");
+        options.addArguments("--window-size=1024,768");
+        options.addArguments("--disable-blink-features=AutomationControlled");
+        options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--remote-allow-origins=*");
+        options.addArguments("--disable-extensions");
+        options.addArguments("--disable-plugins");
+        options.addArguments("--disable-images"); // Отключаем картинки для экономии памяти
+        options.addArguments("--disable-javascript"); // Можно попробовать отключить JS если не нужно
+        options.addArguments("--memory-pressure-off"); // Отключаем давление памяти
+        return options;
     }
 
     private void checkSeleniumSetup() {
@@ -269,22 +283,44 @@ public class DomGosuslugiParser {
         }
     }
 
-    private void parseAllPages() throws InterruptedException {
-//        int pageCount = 0;
-//        int maxPages = 1; // ограничение для теста
-
+    private void parseAllPages(int startPage) throws InterruptedException {
         int totalPages = getTotalPages();
         notifyLog("Общее количество страниц: " + totalPages);
-        int currentPage = 1;
+
+        currentPage = startPage;
+
+        if (startPage > 1) {
+            if (startPage > totalPages) {
+                notifyLog("❌ Стартовая страница " + startPage + " превышает общее количество страниц " + totalPages);
+                return;
+            }
+            notifyLog("⏩ Переход к странице " + startPage);
+            goToPage(startPage);
+        }
 
         try {
             while (true) {
-                checkCancelled();
-                //pageCount++;
+                // Проверка отмены в начале каждой страницы
+                if (cancelRequested.get()) {
+                    throw new InterruptedException("Операция отменена пользователем");
+                }
 
                 notifyPageProgress(currentPage, totalPages);
+                notifyLog("📄 Обработка страницы " + currentPage + " из " + totalPages);
 
                 parseCurrentPage();
+
+                // СОХРАНЕНИЕ ПОСЛЕ КАЖДОЙ СТРАНИЦЫ
+                if (!companies.isEmpty()) {
+                    notifyStatus("Сохранение данных страницы " + currentPage + "...");
+                    saveIntermediateResults();
+                    cleanupMemory();
+                }
+
+                // Проверка отмены перед переходом на следующую страницу
+                if (cancelRequested.get()) {
+                    throw new InterruptedException("Операция отменена пользователем");
+                }
 
                 if (!goToNextPage()) {
                     notifyLog("✅ Достигнута последняя страница");
@@ -294,9 +330,51 @@ public class DomGosuslugiParser {
                 currentPage++;
             }
         } catch (InterruptedException ie) {
+            // Сохраняем прогресс при прерывании
+            if (!companies.isEmpty()) {
+                notifyStatus("Сохранение данных перед остановкой...");
+                saveIntermediateResults();
+            }
             throw ie;
         } catch (Exception e) {
             notifyLog("Ошибка парсинга страниц: " + e.getMessage());
+        }
+    }
+
+    private void goToPage(int pageNumber) {
+        try {
+            int choicePage = 1;
+            int countingPage = pageNumber;
+
+            while (countingPage > 2) {
+                WebElement pageLink = driver.findElement(By.xpath("//a[text()='" + (choicePage + 2) + "']"));
+                if (pageLink != null && pageLink.isEnabled()) {
+                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", pageLink);
+                    sleep(1000);
+                    pageLink.click();
+
+                    countingPage -= 2;
+                    choicePage += 2;
+                }
+            }
+
+            if (countingPage == 2) {
+                WebElement pageLink = driver.findElement(By.xpath("//a[text()='" + (choicePage + 1) + "']"));
+                if (pageLink != null && pageLink.isEnabled()) {
+                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", pageLink);
+                    sleep(1000);
+                    pageLink.click();
+                }
+            }
+
+            // Ждем загрузки новой страницы
+            wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
+                    By.cssSelector("ef-poch-ro-row[ng-repeat='organization in organizations'] .register-card")));
+            sleep(2000);
+
+            notifyLog("➡️ Переход на страницу " + pageNumber);
+        } catch (Exception e) {
+            notifyLog("❌ Ошибка перехода на страницу " + pageNumber + ": " + e.getMessage());
         }
     }
 
@@ -323,28 +401,137 @@ public class DomGosuslugiParser {
         }
     }
 
+    // Добавляем метод для промежуточного сохранения
+    private void saveIntermediateResults() {
+        if (companies.isEmpty()) {
+            return;
+        }
+
+        try {
+            String fileName = "Управляющие компании СПб " + LocalDate.now().getYear() + ".xlsx";
+            boolean fileExists = new File(fileName).exists();
+
+            Workbook workbook;
+            Sheet sheet;
+
+            if (fileExists) {
+                try (FileInputStream fis = new FileInputStream(fileName)) {
+                    workbook = new XSSFWorkbook(fis);
+                }
+                sheet = workbook.getSheet("Компании");
+                if (sheet == null) {
+                    sheet = workbook.createSheet("Компании");
+                    createHeaders(sheet, workbook);
+                }
+            } else {
+                workbook = new XSSFWorkbook();
+                sheet = workbook.createSheet("Компании");
+                createHeaders(sheet, workbook);
+            }
+
+            CellStyle defaultStyle = createDefaultStyle(workbook);
+            CellStyle linkStyle = createLinkStyle(workbook);
+            CreationHelper createHelper = workbook.getCreationHelper();
+
+            // Получаем существующие компании из файла
+            Map<String, Integer> existingCompanies = new HashMap<>();
+            if (fileExists && sheet.getPhysicalNumberOfRows() > 1) {
+                for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                    Row row = sheet.getRow(i);
+                    if (row != null && row.getCell(0) != null) {
+                        String companyName = row.getCell(0).getStringCellValue();
+                        if (companyName != null && !companyName.trim().isEmpty()) {
+                            existingCompanies.put(companyName.trim(), i);
+                        }
+                    }
+                }
+            }
+
+            int newRowsCount = 0;
+            int updatedRowsCount = 0;
+
+            // Добавляем/обновляем только новые компании
+            for (Company company : companies) {
+                if (company.getName() == null || company.getName().trim().isEmpty()) {
+                    continue;
+                }
+
+                String companyName = company.getName().trim();
+                Integer existingRowIndex = existingCompanies.get(companyName);
+
+                if (existingRowIndex != null) {
+                    updateCompanyRow(sheet.getRow(existingRowIndex), company, defaultStyle, linkStyle, createHelper);
+                    updatedRowsCount++;
+                } else {
+                    int newRowIndex = sheet.getLastRowNum() + 1;
+                    Row row = sheet.createRow(newRowIndex);
+                    createCompanyRow(row, company, defaultStyle, linkStyle, createHelper);
+                    newRowsCount++;
+                    existingCompanies.put(companyName, newRowIndex);
+                }
+            }
+
+            // Авто-размер колонок
+            for (int i = 0; i < 11; i++) {
+                sheet.autoSizeColumn(i);
+                sheet.setColumnWidth(i, sheet.getColumnWidth(i) + 512);
+            }
+
+            // Авто-фильтр
+            sheet.setAutoFilter(new CellRangeAddress(0, sheet.getLastRowNum(), 0, 10));
+
+            try (FileOutputStream fos = new FileOutputStream(fileName)) {
+                workbook.write(fos);
+            }
+
+            workbook.close();
+
+            notifyLog("💾 Промежуточное сохранение: " + newRowsCount + " новых, " + updatedRowsCount + " обновлено");
+
+        } catch (IOException e) {
+            cancelRequested.set(true);
+            notifyLog("❌ Ошибка промежуточного сохранения: " + e.getMessage());
+        }
+    }
+
+    // Добавляем метод для очистки памяти
+    private void cleanupMemory() {
+        // Очищаем список компаний
+        companies.clear();
+
+        // Принудительный вызов сборщика мусора
+        System.gc();
+
+        notifyLog("🧹 Память очищена");
+    }
+
     private void parseCurrentPage() throws InterruptedException {
         try {
-            // Явное ожидание загрузки страницы после перехода
+            // Проверка отмены перед началом парсинга страницы
+            if (cancelRequested.get()) {
+                throw new InterruptedException("Операция отменена пользователем");
+            }
+
             wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
                     By.cssSelector("ef-poch-ro-row[ng-repeat='organization in organizations'] .register-card")));
 
-            // Даем дополнительное время для полной загрузки
             sleep(2000);
 
             // 1. ОДНОПОТОЧНЫЙ парсинг основных данных карточек
             List<Company> basicCompanies = new ArrayList<>();
 
-            // Получаем количество карточек на странице
             int cardCount = driver.findElements(
                     By.cssSelector("ef-poch-ro-row[ng-repeat='organization in organizations'] .register-card")).size();
             notifyLog("Найдено карточек на странице: " + cardCount);
 
-            // Парсим каждую карточку по индексу, получая СВЕЖИЕ элементы каждый раз
             for (int i = 0; i < cardCount; i++) {
-                checkCancelled();
+                // Проверка отмены перед каждой карточкой (только быстрая проверка флага)
+                if (cancelRequested.get()) {
+                    notifyLog("⏹️ Отмена запрошена, прерываем парсинг карточек");
+                    break;
+                }
+
                 try {
-                    // Каждый раз получаем СВЕЖИЙ список элементов
                     List<WebElement> currentCards = driver.findElements(
                             By.cssSelector("ef-poch-ro-row[ng-repeat='organization in organizations'] .register-card"));
 
@@ -353,42 +540,51 @@ public class DomGosuslugiParser {
                         Company company = parseCompanyCard(card);
                         if (company != null && company.getProfileUrl() != null && !company.getProfileUrl().isEmpty()) {
                             basicCompanies.add(company);
-                            notifyLog("✔ Найдена компания: " + company.getName());
                         }
-                    } else {
-                        notifyLog("⚠️ Карточка с индексом " + i + " не найдена");
                     }
                 } catch (Exception e) {
                     if (e.getMessage().contains("stale element reference")) {
                         notifyLog("❌ STALE ЭЛЕМЕНТ при парсинге карточки " + (i + 1) + ", пропускаем");
-                    } else {
-                        notifyLog("❌ Ошибка парсинга карточки " + (i + 1) + ": " + e.getMessage());
                     }
                 }
             }
 
-            // Если нет компаний для парсинга, выходим
             if (basicCompanies.isEmpty()) {
                 notifyLog("⚠️ На странице не найдено компаний для парсинга");
                 return;
             }
 
-            // 2. МНОГОПОТОЧНЫЙ парсинг детальной информации
+            // 2. МНОГОПОТОЧНЫЙ парсинг - проверка отмены перед запуском
+            if (cancelRequested.get()) {
+                throw new InterruptedException("Операция отменена пользователем");
+            }
+
             ExecutorService executorService = Executors.newFixedThreadPool(3);
             List<CompletableFuture<Void>> futures = new ArrayList<>();
 
             for (Company basicCompany : basicCompanies) {
-                checkCancelled();
+                // Проверка отмены перед добавлением каждой задачи
+                if (cancelRequested.get()) {
+                    notifyLog("⏹️ Отмена запрошена, прерываем запуск потоков");
+                    break;
+                }
 
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    // Проверка отмены в начале каждого потока
+                    if (cancelRequested.get()) {
+                        return;
+                    }
+
                     WebDriver threadDriver = null;
                     try {
-                        threadDriver = createNewDriver();
-                        // Парсим детали для существующей компании
+                        threadDriver = new ChromeDriver(createChromeOptions());
+
+                        // Передаем флаг отмены в метод парсинга деталей
                         parseCompanyDetails(basicCompany, threadDriver);
-                        notifyLog("✨ Завершен парсинг: " + basicCompany.getName());
                     } catch (Exception e) {
-                        notifyLog("❌ Ошибка парсинга деталей для " + basicCompany.getName() + ": " + e.getMessage());
+                        if (!cancelRequested.get()) {
+                            notifyLog("❌ Ошибка парсинга деталей для " + basicCompany.getName() + ": " + e.getMessage());
+                        }
                     } finally {
                         if (threadDriver != null) {
                             threadDriver.quit();
@@ -398,55 +594,47 @@ public class DomGosuslugiParser {
                 futures.add(future);
             }
 
-            // Ждем завершения ВСЕХ потоков с таймаутом
+            // Ждем завершения с периодической проверкой отмены
             CompletableFuture<Void> allFutures = CompletableFuture.allOf(
                     futures.toArray(new CompletableFuture[0])
             );
 
             try {
-                // Ожидаем завершения всех потоков с таймаутом 10 минут
-                allFutures.get(10, TimeUnit.MINUTES);
-                notifyLog("🎯 ВСЕ потоки парсинга завершены для текущей страницы");
-            } catch (TimeoutException e) {
-                notifyLog("⚠️ Таймаут ожидания завершения потоков парсинга");
-                // Отменяем все незавершенные задачи
-                futures.forEach(f -> f.cancel(true));
-            } catch (InterruptedException | ExecutionException e) {
-                notifyLog("❌ Ошибка выполнения потоков: " + e.getMessage());
-                throw new InterruptedException("Парсинг прерван: " + e.getMessage());
-            } finally {
-                // Гарантированно завершаем executor service
-                executorService.shutdown();
-                try {
-                    if (!executorService.awaitTermination(30, TimeUnit.SECONDS)) {
-                        executorService.shutdownNow();
-                        notifyLog("🔴 ExecutorService принудительно завершен");
+                // Ждем с таймаутом и проверкой отмены каждую секунду
+                for (int i = 0; i < 480; i++) { // 8 минут = 480 секунд
+                    if (cancelRequested.get()) {
+                        notifyLog("⏹️ Отмена запрошена, прерываем ожидание потоков");
+                        futures.forEach(f -> f.cancel(true));
+                        break;
                     }
-                } catch (InterruptedException e) {
-                    executorService.shutdownNow();
-                    Thread.currentThread().interrupt();
-                    throw new InterruptedException("🔴 Ошибка ав принудительного завершения ExecutorService: " + e.getMessage());
+
+                    if (allFutures.isDone()) {
+                        break;
+                    }
+
+                    sleep(1000); // Ждем 1 секунду
                 }
+
+                if (!allFutures.isDone()) {
+                    notifyLog("⚠️ Таймаут ожидания завершения потоков парсинга");
+                    futures.forEach(f -> f.cancel(true));
+                } else {
+                    notifyLog("🎯 Парсинг страницы " + currentPage + " завершен");
+                }
+            } finally {
+                executorService.shutdownNow(); // Принудительно завершаем executor
             }
 
-            // Только после завершения всех потоков добавляем компании и логируем
+            // Добавляем компании в общий список
             companies.addAll(basicCompanies);
+
+        } catch (InterruptedException ie) {
+            throw ie;
         } catch (TimeoutException te) {
             notifyLog("⚠️ Карточки организаций не появились: " + te.getMessage());
         } catch (Exception e) {
             notifyLog("❌ Ошибка парсинга страницы: " + e.getMessage());
         }
-    }
-
-    // Метод для создания нового драйвера с теми же настройками
-    private WebDriver createNewDriver() {
-        ChromeOptions options = new ChromeOptions();
-        // options.addArguments("--headless=new");
-        options.addArguments("--window-size=1024,768");
-        options.addArguments("--disable-blink-features=AutomationControlled");
-        options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-
-        return new ChromeDriver(options);
     }
 
     // Поля карточки списка: устойчивые селекторы для названия и ссылки
@@ -569,9 +757,14 @@ public class DomGosuslugiParser {
         }
     }
 
-    private void parseCompanyDetails(Company company, WebDriver threadDriver) throws InterruptedException {
+    private void parseCompanyDetails(Company company, WebDriver threadDriver) {
         if (company.getProfileUrl() == null || company.getProfileUrl().isEmpty()) {
             notifyLog("❌ Пустая ссылка для компании: " + company.getName());
+            return;
+        }
+
+        // Проверка отмены в начале
+        if (cancelRequested.get()) {
             return;
         }
 
@@ -584,9 +777,10 @@ public class DomGosuslugiParser {
             ((JavascriptExecutor) threadDriver).executeScript("window.open(arguments[0], '_blank');", company.getProfileUrl());
             sleep(1000);
 
-            // Проверка отмены для этого потока
+            // Проверка отмены после открытия вкладки
             if (cancelRequested.get()) {
-                throw new InterruptedException("Операция отменена пользователем");
+                threadDriver.quit();
+                return;
             }
 
             // Переключаемся на новую вкладку
@@ -600,27 +794,32 @@ public class DomGosuslugiParser {
             threadWait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("body")));
             sleep(1500);
 
+            // Проверка отмены после загрузки страницы
             if (cancelRequested.get()) {
-                throw new InterruptedException("Операция отменена пользователем");
+                threadDriver.close();
+                threadDriver.switchTo().window(originalWindow);
+                return;
             }
 
             clickAdditionalInfoButton(threadDriver, threadWait);
             sleep(1500);
 
+            // Финальная проверка отмены перед парсингом
+            if (cancelRequested.get()) {
+                threadDriver.close();
+                threadDriver.switchTo().window(originalWindow);
+                return;
+            }
+
             parseAdditionalInfo(company, threadDriver, threadWait);
 
-            // Закрываем вкладку и возвращаемся
-            threadDriver.quit();
-        } catch (InterruptedException ie) {
-            throw ie;
+            // Закрываем вкладку
+            threadDriver.close();
+            threadDriver.switchTo().window(originalWindow);
+
         } catch (Exception e) {
-            notifyLog("❌ Ошибка при парсинге детальной информации для " + company.getName() + ": " + e.getMessage());
-            // Пытаемся восстановить состояние драйвера
-            try {
-                String originalWindow = threadDriver.getWindowHandles().iterator().next();
-                threadDriver.switchTo().window(originalWindow);
-            } catch (Exception ex) {
-                // ignore
+            if (!cancelRequested.get()) {
+                notifyLog("❌ Ошибка при парсинге детальной информации для " + company.getName() + ": " + e.getMessage());
             }
         }
     }

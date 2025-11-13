@@ -11,6 +11,7 @@ public class ParserGUI extends JFrame implements ProgressListener {
     private final JTextArea logArea = new JTextArea();
     private final JButton startButton = new JButton("Старт");
     private final JButton stopButton = new JButton("Стоп");
+    private final JSpinner startPageSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
     private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
     private Thread workerThread;
@@ -21,11 +22,23 @@ public class ParserGUI extends JFrame implements ProgressListener {
         setSize(900, 600);
         setLocationRelativeTo(null);
 
-        // Верхняя панель: статус
+        // Верхняя панель: статус и настройки
         JPanel top = new JPanel(new BorderLayout(8, 8));
         top.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        top.add(new JLabel("Статус:"), BorderLayout.WEST);
-        top.add(statusLabel, BorderLayout.CENTER);
+
+        // Панель с настройками
+        JPanel settingsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        settingsPanel.add(new JLabel("Начать со страницы:"));
+        startPageSpinner.setToolTipText("Номер страницы для начала парсинга (по умолчанию: 1)");
+        startPageSpinner.setPreferredSize(new Dimension(80, 25));
+        settingsPanel.add(startPageSpinner);
+
+        top.add(settingsPanel, BorderLayout.NORTH);
+
+        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        statusPanel.add(new JLabel("Статус:"));
+        statusPanel.add(statusLabel);
+        top.add(statusPanel, BorderLayout.SOUTH);
 
         // Прогресс-бар: настройка для отображения прогресса по страницам
         pageProgress.setStringPainted(true);
@@ -68,9 +81,14 @@ public class ParserGUI extends JFrame implements ProgressListener {
     }
 
     private void startParsing() {
+        cleanupSystem();
+
         startButton.setEnabled(false);
         stopButton.setEnabled(true);
         cancelRequested.set(false);
+
+        // Получаем выбранную стартовую страницу
+        int startPage = (Integer) startPageSpinner.getValue();
 
         // Сброс прогресса
         SwingUtilities.invokeLater(() -> {
@@ -90,6 +108,7 @@ public class ParserGUI extends JFrame implements ProgressListener {
                 DomGosuslugiParser parser = new DomGosuslugiParser();
                 parser.setListener(this);
                 parser.setCancellationFlag(cancelRequested);
+                parser.setStartPage(startPage); // Устанавливаем стартовую страницу
                 parser.parseOrganizations();
                 msg = "Парсинг завершён";
             } catch (Throwable t) {
@@ -97,6 +116,7 @@ public class ParserGUI extends JFrame implements ProgressListener {
                 msg = "Ошибка: " + t.getMessage();
                 log("Исключение: " + t.toString());
             } finally {
+                cleanupSystem();
                 onFinished(ok, msg);
             }
         }, "parser-thread");
@@ -107,7 +127,21 @@ public class ParserGUI extends JFrame implements ProgressListener {
         stopButton.setEnabled(false);
         cancelRequested.set(true);
         onStatus("Остановка по запросу...");
-        log("Пользователь запросил остановку.");
+        log("⏹️ Пользователь запросил остановку. Завершаем текущие операции...");
+
+        // Принудительно прерываем рабочий поток
+        if (workerThread != null && workerThread.isAlive()) {
+            workerThread.interrupt();
+            log("⚠️ Отправлен сигнал прерывания потока");
+        }
+    }
+
+    private void cleanupSystem() {
+        // Принудительный вызов сборщика мусора
+        System.gc();
+        System.runFinalization();
+
+        log("🧹 Системная очистка памяти выполнена");
     }
 
     // ProgressListener implementation

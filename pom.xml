@@ -221,7 +221,7 @@
               <configuration>
                 <headerType>gui</headerType>
                 <jar>${project.build.directory}/${finalName}.jar</jar>
-                <outfile>${project.build.directory}/${finalName}-standalone.exe</outfile>
+                <outfile>${project.build.directory}/${finalName}-standalone-v2.exe</outfile>
                 <errTitle>Парсер Госуслуг</errTitle>
 
                 <classPath>
@@ -249,7 +249,7 @@
                   <productName>Gosuslugi Parser</productName>
                   <companyName>Your Company</companyName>
                   <internalName>GosuslugiParser</internalName>
-                  <originalFilename>${finalName}-standalone.exe</originalFilename>
+                  <originalFilename>${finalName}-standalone-v2.exe</originalFilename>
                 </versionInfo>
               </configuration>
             </execution>
