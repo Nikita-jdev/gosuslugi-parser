@@ -9,6 +9,7 @@ public class Company {
     private String address;
     private String website;
     private String phone;
+    private String email;
     private String receptionInfo;
     private String receptionHours;
     private String breakTimes;

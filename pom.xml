@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-  <project xmlns="http://maven.apache.org/POM/4.0.0"
-           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-           xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.parser</groupId>
@@ -12,249 +12,251 @@
     <url>https://example.local/gosuslugi-parser</url>
 
     <properties>
-      <!-- Java toolchain -->
-      <maven.compiler.release>17</maven.compiler.release>
-      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-      <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Java toolchain -->
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-      <!-- Versions -->
-      <selenium.version>4.15.0</selenium.version>
-      <poi.version>5.2.4</poi.version>
-      <lombok.version>1.18.30</lombok.version>
-      <slf4j.version>2.0.9</slf4j.version>
+        <!-- Versions -->
+        <selenium.version>4.15.0</selenium.version>
+        <poi.version>5.2.4</poi.version>
+        <lombok.version>1.18.30</lombok.version>
+        <slf4j.version>2.0.9</slf4j.version>
 
-      <!-- Plugins -->
-      <plugin.compiler.version>3.11.0</plugin.compiler.version>
-      <plugin.assembly.version>3.6.0</plugin.assembly.version>
-      <plugin.download.version>1.6.8</plugin.download.version>
-      <plugin.antrun.version>3.1.0</plugin.antrun.version>
-      <plugin.launch4j.version>2.5.0</plugin.launch4j.version>
-      <plugin.clean.version>3.3.2</plugin.clean.version>
+        <!-- Plugins -->
+        <plugin.compiler.version>3.11.0</plugin.compiler.version>
+        <plugin.assembly.version>3.6.0</plugin.assembly.version>
+        <plugin.download.version>1.6.8</plugin.download.version>
+        <plugin.antrun.version>3.1.0</plugin.antrun.version>
+        <plugin.launch4j.version>2.5.0</plugin.launch4j.version>
+        <plugin.clean.version>3.3.2</plugin.clean.version>
 
-      <!-- Temurin JRE 17 (Windows x64) -->
-      <temurin.jre.url>https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jre_x64_windows_hotspot_17.0.12_7.zip</temurin.jre.url>
-      <temurin.jre.folder>jdk-17.0.12+7-jre</temurin.jre.folder>
+        <!-- Temurin JRE 17 (Windows x64) -->
+        <temurin.jre.url>
+            https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jre_x64_windows_hotspot_17.0.12_7.zip
+        </temurin.jre.url>
+        <temurin.jre.folder>jdk-17.0.12+7-jre</temurin.jre.folder>
 
-      <!-- App -->
-      <main.class>com.parser.ParserGUI</main.class>
-      <finalName>gosuslugi-parser</finalName>
+        <!-- App -->
+        <main.class>com.parser.ParserGUI</main.class>
+        <finalName>gosuslugi-parser</finalName>
     </properties>
 
     <dependencies>
-      <dependency>
-        <groupId>org.seleniumhq.selenium</groupId>
-        <artifactId>selenium-java</artifactId>
-        <version>${selenium.version}</version>
-      </dependency>
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>${selenium.version}</version>
+        </dependency>
 
-      <dependency>
-        <groupId>org.apache.poi</groupId>
-        <artifactId>poi-ooxml</artifactId>
-        <version>${poi.version}</version>
-      </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
 
-      <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-        <version>${lombok.version}</version>
-        <scope>provided</scope>
-      </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
 
-      <dependency>
-        <groupId>io.github.bonigarcia</groupId>
-        <artifactId>webdrivermanager</artifactId>
-        <version>5.6.2</version>
-      </dependency>
+        <dependency>
+            <groupId>io.github.bonigarcia</groupId>
+            <artifactId>webdrivermanager</artifactId>
+            <version>5.6.2</version>
+        </dependency>
 
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-simple</artifactId>
-        <version>${slf4j.version}</version>
-        <scope>runtime</scope>
-      </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 
     <build>
-      <finalName>${finalName}</finalName>
-      <plugins>
-        <!-- Clean: дополнительно чистим встроенный jre -->
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-clean-plugin</artifactId>
-          <version>${plugin.clean.version}</version>
-          <configuration>
-            <filesets>
-              <fileset>
-                <directory>${project.build.directory}/jre</directory>
-                <includes>
-                  <include>**/*</include>
-                </includes>
-              </fileset>
-              <fileset>
-                <directory>${project.build.directory}</directory>
-                <includes>
-                  <include>jre.zip</include>
-                </includes>
-              </fileset>
-            </filesets>
-          </configuration>
-        </plugin>
+        <finalName>${finalName}</finalName>
+        <plugins>
+            <!-- Clean: дополнительно чистим встроенный jre -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>${plugin.clean.version}</version>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${project.build.directory}/jre</directory>
+                            <includes>
+                                <include>**/*</include>
+                            </includes>
+                        </fileset>
+                        <fileset>
+                            <directory>${project.build.directory}</directory>
+                            <includes>
+                                <include>jre.zip</include>
+                            </includes>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
 
-        <!-- Компиляция под Java 17 -->
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>${plugin.compiler.version}</version>
-          <configuration>
-            <release>${maven.compiler.release}</release>
-          </configuration>
-        </plugin>
+            <!-- Компиляция под Java 17 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${plugin.compiler.version}</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                </configuration>
+            </plugin>
 
-        <!-- Создание fat-jar (jar-with-dependencies) -->
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <version>${plugin.assembly.version}</version>
-          <configuration>
-            <archive>
-              <manifest>
-                <mainClass>${main.class}</mainClass>
-              </manifest>
-              <!-- Опционально добавить манифест-атрибуты -->
-            </archive>
-            <descriptorRefs>
-              <descriptorRef>jar-with-dependencies</descriptorRef>
-            </descriptorRefs>
-            <finalName>${finalName}</finalName>
-            <appendAssemblyId>false</appendAssemblyId>
-          </configuration>
-          <executions>
-            <execution>
-              <id>make-assembly</id>
-              <phase>package</phase>
-              <goals>
-                <goal>single</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
+            <!-- Создание fat-jar (jar-with-dependencies) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>${plugin.assembly.version}</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${main.class}</mainClass>
+                        </manifest>
+                        <!-- Опционально добавить манифест-атрибуты -->
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <finalName>${finalName}</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
-        <!-- Скачиваем JRE 17 (Temurin, Windows x64) -->
-        <plugin>
-          <groupId>com.googlecode.maven-download-plugin</groupId>
-          <artifactId>download-maven-plugin</artifactId>
-          <version>${plugin.download.version}</version>
-          <executions>
-            <execution>
-              <id>download-jre</id>
-              <phase>generate-resources</phase>
-              <goals>
-                <goal>wget</goal>
-              </goals>
-              <configuration>
-                <url>${temurin.jre.url}</url>
-                <outputDirectory>${project.build.directory}</outputDirectory>
-                <outputFileName>jre.zip</outputFileName>
-                <unpack>false</unpack>
-                <skipCache>true</skipCache>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
+            <!-- Скачиваем JRE 17 (Temurin, Windows x64) -->
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>${plugin.download.version}</version>
+                <executions>
+                    <execution>
+                        <id>download-jre</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>${temurin.jre.url}</url>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <outputFileName>jre.zip</outputFileName>
+                            <unpack>false</unpack>
+                            <skipCache>true</skipCache>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
-        <!-- Распаковываем JRE и переносим в target/jre -->
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-antrun-plugin</artifactId>
-          <version>${plugin.antrun.version}</version>
-          <executions>
-            <execution>
-              <id>unpack-jre</id>
-              <phase>process-resources</phase>
-              <goals>
-                <goal>run</goal>
-              </goals>
-              <configuration>
-                <target>
-                  <echo message="Unzipping JRE 17 to ${project.build.directory}"/>
-                  <!-- Удалим предыдущий jre, если есть -->
-                  <delete dir="${project.build.directory}/jre" quiet="true"/>
-                  <mkdir dir="${project.build.directory}/jre"/>
+            <!-- Распаковываем JRE и переносим в target/jre -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>${plugin.antrun.version}</version>
+                <executions>
+                    <execution>
+                        <id>unpack-jre</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo message="Unzipping JRE 17 to ${project.build.directory}"/>
+                                <!-- Удалим предыдущий jre, если есть -->
+                                <delete dir="${project.build.directory}/jre" quiet="true"/>
+                                <mkdir dir="${project.build.directory}/jre"/>
 
-                  <!-- Распаковка -->
-                  <unzip src="${project.build.directory}/jre.zip"
-                         dest="${project.build.directory}"
-                         overwrite="true"/>
+                                <!-- Распаковка -->
+                                <unzip src="${project.build.directory}/jre.zip"
+                                       dest="${project.build.directory}"
+                                       overwrite="true"/>
 
-                  <!-- Перенос распакованной папки Temurin в target/jre -->
-                  <move todir="${project.build.directory}/jre">
-                    <fileset dir="${project.build.directory}/${temurin.jre.folder}"/>
-                  </move>
+                                <!-- Перенос распакованной папки Temurin в target/jre -->
+                                <move todir="${project.build.directory}/jre">
+                                    <fileset dir="${project.build.directory}/${temurin.jre.folder}"/>
+                                </move>
 
-                  <!-- Очистка временных артефактов -->
-                  <delete dir="${project.build.directory}/${temurin.jre.folder}" quiet="true"/>
-                  <delete file="${project.build.directory}/jre.zip" quiet="true"/>
-                </target>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
+                                <!-- Очистка временных артефактов -->
+                                <delete dir="${project.build.directory}/${temurin.jre.folder}" quiet="true"/>
+                                <delete file="${project.build.directory}/jre.zip" quiet="true"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
-        <!-- Launch4j для создания EXE с минимальной версией JRE 17 и бандлом jre -->
-        <plugin>
-          <groupId>com.akathist.maven.plugins.launch4j</groupId>
-          <artifactId>launch4j-maven-plugin</artifactId>
-          <version>${plugin.launch4j.version}</version>
-          <executions>
-            <execution>
-              <id>create-exe</id>
-              <phase>package</phase>
-              <goals>
-                <goal>launch4j</goal>
-              </goals>
-              <configuration>
-                <headerType>gui</headerType>
-                <jar>${project.build.directory}/${finalName}.jar</jar>
-                <outfile>${project.build.directory}/${finalName}-standalone-v2.exe</outfile>
-                <errTitle>Парсер Госуслуг</errTitle>
+            <!-- Launch4j для создания EXE с минимальной версией JRE 17 и бандлом jre -->
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>${plugin.launch4j.version}</version>
+                <executions>
+                    <execution>
+                        <id>create-exe</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <jar>${project.build.directory}/${finalName}.jar</jar>
+                            <outfile>${project.build.directory}/${finalName}-v3.exe</outfile>
+                            <errTitle>Парсер Госуслуг</errTitle>
 
-                <classPath>
-                  <mainClass>${main.class}</mainClass>
-                </classPath>
+                            <classPath>
+                                <mainClass>${main.class}</mainClass>
+                            </classPath>
 
-                <!-- Иконка (если нет файла, можно временно убрать тег) -->
-                <icon>${project.basedir}/icon.ico</icon>
+                            <!-- Иконка (если нет файла, можно временно убрать тег) -->
+                            <icon>${project.basedir}/icon.ico</icon>
 
-                <jre>
-                  <minVersion>17</minVersion>
-                  <!-- Папка target/jre относится к каталогу exe, поэтому указываем относительный путь -->
-                  <path>jre</path>
-                  <bundledJre64Bit>true</bundledJre64Bit>
-                  <bundledJreAsFallback>false</bundledJreAsFallback>
-                </jre>
+                            <jre>
+                                <minVersion>17</minVersion>
+                                <!-- Папка target/jre относится к каталогу exe, поэтому указываем относительный путь -->
+                                <path>jre</path>
+                                <bundledJre64Bit>true</bundledJre64Bit>
+                                <bundledJreAsFallback>false</bundledJreAsFallback>
+                            </jre>
 
-                <versionInfo>
-                  <fileVersion>1.0.0.0</fileVersion>
-                  <txtFileVersion>1.0.0.0</txtFileVersion>
-                  <fileDescription>Парсер управляющих компаний Госуслуг</fileDescription>
-                  <copyright>2024</copyright>
-                  <productVersion>1.0.0.0</productVersion>
-                  <txtProductVersion>1.0.0.0</txtProductVersion>
-                  <productName>Gosuslugi Parser</productName>
-                  <companyName>Your Company</companyName>
-                  <internalName>GosuslugiParser</internalName>
-                  <originalFilename>${finalName}-standalone-v2.exe</originalFilename>
-                </versionInfo>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-      </plugins>
+                            <versionInfo>
+                                <fileVersion>1.0.0.0</fileVersion>
+                                <txtFileVersion>1.0.0.0</txtFileVersion>
+                                <fileDescription>Парсер управляющих компаний Госуслуг</fileDescription>
+                                <copyright>2025</copyright>
+                                <productVersion>1.0.0.0</productVersion>
+                                <txtProductVersion>1.0.0.0</txtProductVersion>
+                                <productName>Gosuslugi Parser</productName>
+                                <companyName>Your Company</companyName>
+                                <internalName>GosuslugiParser</internalName>
+                                <originalFilename>${finalName}-v3.exe</originalFilename>
+                            </versionInfo>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
-  </project>
+</project>

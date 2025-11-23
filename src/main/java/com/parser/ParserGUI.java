@@ -3,6 +3,7 @@ package com.parser;
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
 import java.awt.*;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ParserGUI extends JFrame implements ProgressListener {
@@ -12,9 +13,11 @@ public class ParserGUI extends JFrame implements ProgressListener {
     private final JButton startButton = new JButton("Старт");
     private final JButton stopButton = new JButton("Стоп");
     private final JSpinner startPageSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
+    private final JComboBox<String> parserComboBox = new JComboBox<>();
     private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
     private Thread workerThread;
+    private String selectedRegion; // Выбранный пользователем регион
 
     public ParserGUI() {
         super("Парсер управляющих компаний (dom.gosuslugi.ru)");
@@ -28,6 +31,15 @@ public class ParserGUI extends JFrame implements ProgressListener {
 
         // Панель с настройками
         JPanel settingsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        // Выбор парсера
+        settingsPanel.add(new JLabel("Тип парсера:"));
+        parserComboBox.addItem("Реестр объектов жилищного фонда");
+        parserComboBox.addItem("Реестры поставщиков информации");
+        parserComboBox.setToolTipText("Выберите тип данных для парсинга");
+        settingsPanel.add(parserComboBox);
+
+        // Стартовая страница
         settingsPanel.add(new JLabel("Начать со страницы:"));
         startPageSpinner.setToolTipText("Номер страницы для начала парсинга (по умолчанию: 1)");
         startPageSpinner.setPreferredSize(new Dimension(80, 25));
@@ -86,9 +98,11 @@ public class ParserGUI extends JFrame implements ProgressListener {
         startButton.setEnabled(false);
         stopButton.setEnabled(true);
         cancelRequested.set(false);
+        selectedRegion = null; // Сбрасываем выбранный регион
 
-        // Получаем выбранную стартовую страницу
+        // Получаем выбранные настройки
         int startPage = (Integer) startPageSpinner.getValue();
+        String selectedParser = (String) parserComboBox.getSelectedItem();
 
         // Сброс прогресса
         SwingUtilities.invokeLater(() -> {
@@ -105,12 +119,21 @@ public class ParserGUI extends JFrame implements ProgressListener {
             boolean ok = true;
             String msg = "Готово";
             try {
-                DomGosuslugiParser parser = new DomGosuslugiParser();
-                parser.setListener(this);
-                parser.setCancellationFlag(cancelRequested);
-                parser.setStartPage(startPage); // Устанавливаем стартовую страницу
-                parser.parseOrganizations();
-                msg = "Парсинг завершён";
+                if ("Реестр объектов жилищного фонда".equals(selectedParser)) {
+                    DomGosuslugiHousesParser parser = new DomGosuslugiHousesParser();
+                    parser.setListener(this);
+                    parser.setCancellationFlag(cancelRequested);
+                    parser.setStartPage(startPage);
+                    parser.parseHouses();
+                    msg = "Парсинг объектов жилищного фонда завершён";
+                } else {
+                    DomGosuslugiParser parser = new DomGosuslugiParser();
+                    parser.setListener(this);
+                    parser.setCancellationFlag(cancelRequested);
+                    parser.setStartPage(startPage);
+                    parser.parseOrganizations();
+                    msg = "Парсинг поставщиков информации завершён";
+                }
             } catch (Throwable t) {
                 ok = false;
                 msg = "Ошибка: " + t.getMessage();
@@ -121,6 +144,73 @@ public class ParserGUI extends JFrame implements ProgressListener {
             }
         }, "parser-thread");
         workerThread.start();
+    }
+
+    // Новый метод для отображения диалога выбора региона
+    @Override
+    public String showRegionSelectionDialog(List<String> regions) {
+        try {
+            // Создаем диалоговое окно для выбора региона
+            final String[] result = {null};
+
+            SwingUtilities.invokeAndWait(() -> {
+                JDialog dialog = new JDialog(this, "Выбор региона", true);
+                dialog.setLayout(new BorderLayout());
+                dialog.setSize(400, 500);
+                dialog.setLocationRelativeTo(this);
+
+                JPanel contentPanel = new JPanel(new BorderLayout(10, 10));
+                contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+                // Заголовок
+                JLabel titleLabel = new JLabel("Выберите регион для парсинга:");
+                titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+                contentPanel.add(titleLabel, BorderLayout.NORTH);
+
+                // Список регионов
+                JList<String> regionList = new JList<>(regions.toArray(new String[0]));
+                regionList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+                regionList.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
+
+                JScrollPane scrollPane = new JScrollPane(regionList);
+                scrollPane.setPreferredSize(new Dimension(350, 350));
+                contentPanel.add(scrollPane, BorderLayout.CENTER);
+
+                // Панель кнопок
+                JPanel buttonPanel = new JPanel(new FlowLayout());
+                JButton okButton = new JButton("OK");
+                JButton cancelButton = new JButton("Отмена");
+
+                okButton.addActionListener(e -> {
+                    String selected = regionList.getSelectedValue();
+                    if (selected != null) {
+                        result[0] = selected;
+                        dialog.dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(dialog, "Пожалуйста, выберите регион", "Внимание", JOptionPane.WARNING_MESSAGE);
+                    }
+                });
+
+                cancelButton.addActionListener(e -> {
+                    result[0] = null;
+                    dialog.dispose();
+                });
+
+                buttonPanel.add(okButton);
+                buttonPanel.add(cancelButton);
+                contentPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+                dialog.add(contentPanel);
+                dialog.setVisible(true);
+            });
+
+            selectedRegion = result[0];
+            return result[0];
+
+        } catch (Exception e) {
+            log("❌ Ошибка при выборе региона: " + e.getMessage());
+            return null;
+        }
     }
 
     private void requestCancel() {

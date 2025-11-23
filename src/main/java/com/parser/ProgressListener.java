@@ -1,5 +1,7 @@
 package com.parser;
 
+import java.util.List;
+
 public interface ProgressListener {
     // Краткий статус этапа
     void onStatus(String text);
@@ -12,4 +14,7 @@ public interface ProgressListener {
 
     // Сигнал об окончании (успех/ошибка)
     void onFinished(boolean success, String message);
+
+    // Новый метод для выбора региона
+    String showRegionSelectionDialog(List<String> regions);
 }

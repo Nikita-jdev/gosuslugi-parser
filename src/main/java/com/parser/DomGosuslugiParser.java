@@ -61,6 +61,8 @@ public class DomGosuslugiParser {
 
     @Setter
     private ProgressListener listener;
+    @Setter
+    private String region = "Санкт-Петербург";
     private AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
     public void setCancellationFlag(AtomicBoolean cancelRequested) {
@@ -108,8 +110,8 @@ public class DomGosuslugiParser {
             sleep(5000);
             checkCancelled();
 
-            notifyStatus("Выбор региона: Санкт-Петербург");
-            selectSpbFilter();
+            selectRegionFilter();
+//            selectSpbFilter();
             checkCancelled();
 
             clickSearchButton();
@@ -142,10 +144,7 @@ public class DomGosuslugiParser {
 
     public void initDriver() {
         try {
-            // Относительный путь - chromedriver лежит рядом с .exe
             String chromeDriverPath = "chromedriver.exe";
-
-            // Проверяем наличие chromedriver
             File chromeDriverFile = new File(chromeDriverPath);
             if (chromeDriverFile.exists()) {
                 System.setProperty("webdriver.chrome.driver", chromeDriverPath);
@@ -182,9 +181,9 @@ public class DomGosuslugiParser {
         options.addArguments("--remote-allow-origins=*");
         options.addArguments("--disable-extensions");
         options.addArguments("--disable-plugins");
-        options.addArguments("--disable-images"); // Отключаем картинки для экономии памяти
-        options.addArguments("--disable-javascript"); // Можно попробовать отключить JS если не нужно
-        options.addArguments("--memory-pressure-off"); // Отключаем давление памяти
+        options.addArguments("--disable-images");
+        options.addArguments("--disable-javascript");
+        options.addArguments("--memory-pressure-off");
         return options;
     }
 
@@ -201,23 +200,64 @@ public class DomGosuslugiParser {
         }
     }
 
-    private void selectSpbFilter() {
+    private void selectRegionFilter() {
         try {
             List<WebElement> selects = driver.findElements(By.cssSelector("select"));
             if (!selects.isEmpty()) {
                 Select dropdown = new Select(selects.get(0));
+
+                List <String> regions = dropdown.getOptions().stream()
+                        .map(WebElement::getText)
+                        .toList();
+
+                String selectedRegion = listener.showRegionSelectionDialog(regions);
+
+                if (selectedRegion == null) {
+                    throw new InterruptedException("Пользователь отменил выбор региона");
+                }
+
+                boolean regionFound = false;
+
                 for (WebElement option : dropdown.getOptions()) {
-                    if (option.getText().contains("Санкт-Петербург")) {
+                    if (option.getText().contains(selectedRegion)) {
                         dropdown.selectByVisibleText(option.getText());
+                        regionFound = true;
+                        notifyLog("✅ Выбран регион: " + selectedRegion);
                         break;
                     }
                 }
+
+                if (!regionFound) {
+                    notifyLog("⚠️ Регион '" + selectedRegion + "' не найден в списке, используется первый доступный");
+                    // Выбираем первый доступный регион
+                    if (dropdown.getOptions().size() > 1) {
+                        dropdown.selectByIndex(1); // пропускаем "Все регионы" если есть
+                    }
+                }
             }
-            sleep(2000);
+            sleep(1000);
         } catch (Exception e) {
-            notifyLog("Ошибка выбора фильтра: " + e.getMessage());
+            notifyLog("❌ Ошибка выбора региона: " + e.getMessage());
         }
     }
+
+//    private void selectSpbFilter() {
+//        try {
+//            List<WebElement> selects = driver.findElements(By.cssSelector("select"));
+//            if (!selects.isEmpty()) {
+//                Select dropdown = new Select(selects.get(0));
+//                for (WebElement option : dropdown.getOptions()) {
+//                    if (option.getText().contains("Санкт-Петербург")) {
+//                        dropdown.selectByVisibleText(option.getText());
+//                        break;
+//                    }
+//                }
+//            }
+//            sleep(1000);
+//        } catch (Exception e) {
+//            notifyLog("Ошибка выбора фильтра: " + e.getMessage());
+//        }
+//    }
 
     private void clickSearchButton() {
         try {
@@ -393,7 +433,7 @@ public class DomGosuslugiParser {
             }
 
             notifyLog("⚠️ Не удалось определить общее количество страниц");
-            return 1; // Возвращаем 1 по умолчанию
+            return 1;
 
         } catch (Exception e) {
             notifyLog("❌ Ошибка при получении количества страниц: " + e.getMessage());
@@ -1023,6 +1063,24 @@ public class DomGosuslugiParser {
         }
     }
 
+    private void parseEmailInfo(Company company, WebDriver driver, WebDriverWait wait) {
+        try {
+            // Ищем элемент с email по селектору из span с ng-bind="data.orgEmail"
+            List<WebElement> emailElements = driver.findElements(By.cssSelector("span[ng-bind='data.orgEmail']"));
+            if (!emailElements.isEmpty()) {
+                String email = safeTrim(emailElements.get(0).getText());
+                if (!email.isEmpty()) {
+                    company.setEmail(email);
+                    notifyLog("✅ Найден email: " + email);
+                }
+            } else {
+                notifyLog("⚠️ Email не найден для " + company.getName());
+            }
+        } catch (Exception e) {
+            notifyLog("❌ Ошибка парсинга email для " + company.getName() + ": " + e.getMessage());
+        }
+    }
+
     private String getTextOrEmpty(WebElement scope, By by) {
         try {
             WebElement el = (scope == null) ? driver.findElement(by) : scope.findElement(by);
@@ -1048,6 +1106,7 @@ public class DomGosuslugiParser {
             parseReceptionBeforeHours(company, driver, wait); // Прием граждан: лицо/адрес/телефоны
             parseReceptionInfo(company, driver, wait);        // Часы приема граждан
             parseDirectorInfo(company, driver, wait);         // Руководитель
+            parseEmailInfo(company, driver, wait);           // Email
             parseNotesInfo(company, driver, wait);            // Примечания
         } catch (Exception e) {
             notifyLog("❌ Не удалось найти дополнительную информацию для " + company.getName() + ": " + e.getMessage());
@@ -1134,7 +1193,7 @@ public class DomGosuslugiParser {
         Row headerRow = sheet.createRow(0);
         String[] headers = {
                 "Наименование", "Вид организации", "Фактический адрес", "Сайт", "Телефон",
-                "Информация о приёме", "Часы приёма", "Перерыв", "Примечание",
+                "Email", "Информация о приёме", "Часы приёма", "Перерыв", "Примечание",
                 "Руководитель", "Ссылка на карточку"
         };
         for (int i = 0; i < headers.length; i++) {
@@ -1153,13 +1212,14 @@ public class DomGosuslugiParser {
         setCellValue(row, 2, company.getAddress(), defaultStyle);
         setCellValue(row, 3, company.getWebsite(), defaultStyle);
         setCellValue(row, 4, company.getPhone(), defaultStyle);
-        setCellValue(row, 5, company.getReceptionInfo(), defaultStyle);
-        setCellValue(row, 6, company.getReceptionHours(), defaultStyle);
-        setCellValue(row, 7, company.getBreakTimes(), defaultStyle);
-        setCellValue(row, 8, company.getNotes(), defaultStyle);
-        setCellValue(row, 9, company.getDirectorInfo(), defaultStyle);
+        setCellValue(row, 5, company.getEmail(), defaultStyle);
+        setCellValue(row, 6, company.getReceptionInfo(), defaultStyle);
+        setCellValue(row, 7, company.getReceptionHours(), defaultStyle);
+        setCellValue(row, 8, company.getBreakTimes(), defaultStyle);
+        setCellValue(row, 9, company.getNotes(), defaultStyle);
+        setCellValue(row, 10, company.getDirectorInfo(), defaultStyle);
 
-        Cell linkCell = row.createCell(10);
+        Cell linkCell = row.createCell(11);
         if (company.getProfileUrl() != null && !company.getProfileUrl().isEmpty()) {
             linkCell.setCellValue("Открыть карточку");
             Hyperlink link = createHelper.createHyperlink(HyperlinkType.URL);
@@ -1177,15 +1237,16 @@ public class DomGosuslugiParser {
         setCellValue(row, 2, company.getAddress(), defaultStyle);
         setCellValue(row, 3, company.getWebsite(), defaultStyle);
         setCellValue(row, 4, company.getPhone(), defaultStyle);
-        setCellValue(row, 5, company.getReceptionInfo(), defaultStyle);
-        setCellValue(row, 6, company.getReceptionHours(), defaultStyle);
-        setCellValue(row, 7, company.getBreakTimes(), defaultStyle);
-        setCellValue(row, 8, company.getNotes(), defaultStyle);
-        setCellValue(row, 9, company.getDirectorInfo(), defaultStyle);
+        setCellValue(row, 5, company.getEmail(), defaultStyle);
+        setCellValue(row, 6, company.getReceptionInfo(), defaultStyle);
+        setCellValue(row, 7, company.getReceptionHours(), defaultStyle);
+        setCellValue(row, 8, company.getBreakTimes(), defaultStyle);
+        setCellValue(row, 9, company.getNotes(), defaultStyle);
+        setCellValue(row, 10, company.getDirectorInfo(), defaultStyle);
 
-        Cell linkCell = row.getCell(10);
+        Cell linkCell = row.getCell(11);
         if (linkCell == null) {
-            linkCell = row.createCell(10);
+            linkCell = row.createCell(11);
         }
         if (company.getProfileUrl() != null && !company.getProfileUrl().isEmpty()) {
             linkCell.setCellValue("Открыть карточку");
@@ -1253,12 +1314,12 @@ public class DomGosuslugiParser {
         }
 
         boolean fileExists = false;
-        String fileName = "Управляющие компании СПб " + LocalDate.now().getYear() + ".xlsx";
+        String fileName = "Управляющие компании " + region + " " + LocalDate.now().getYear() + ".xlsx";
 
-        if (new File("Управляющие компании СПб " + LocalDate.now().minusYears(1).getYear() + ".xlsx").exists()) {
+        if (new File("Управляющие компании " + region + " " + LocalDate.now().minusYears(1).getYear() + ".xlsx").exists()) {
             fileExists = true;
-            fileName = "Управляющие компании СПб " + LocalDate.now().minusYears(1).getYear() + ".xlsx";
-        } else if (new File("Управляющие компании СПб " + LocalDate.now().getYear() + ".xlsx").exists()) {
+            fileName = "Управляющие компании " + region + " " + LocalDate.now().minusYears(1).getYear() + ".xlsx";
+        } else if (new File("Управляющие компании " + region + " " + LocalDate.now().getYear() + ".xlsx").exists()) {
             fileExists = true;
         }
 
@@ -1332,9 +1393,9 @@ public class DomGosuslugiParser {
                 }
             }
 
-            sheet.setAutoFilter(new CellRangeAddress(0, sheet.getLastRowNum(), 0, 10));
+            sheet.setAutoFilter(new CellRangeAddress(0, sheet.getLastRowNum(), 0, 11));
 
-            try (FileOutputStream fos = new FileOutputStream("Управляющие компании СПб " + LocalDate.now().getYear() + ".xlsx")) {
+            try (FileOutputStream fos = new FileOutputStream("Управляющие компании " + region + " " + LocalDate.now().getYear() + ".xlsx")) {
                 workbook.write(fos);
             }
 
