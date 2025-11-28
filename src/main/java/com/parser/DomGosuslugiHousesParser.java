@@ -105,8 +105,8 @@ public class DomGosuslugiHousesParser {
             sleep(5000);
             checkCancelled();
 
-            selectRegionFilter();
-//            selectSpbFilter();
+            //selectRegionFilter();
+            selectSpbFilter();
             checkCancelled();
 
             clickSearchButton();
@@ -167,7 +167,7 @@ public class DomGosuslugiHousesParser {
 
     private ChromeOptions createChromeOptions() {
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless=new");
+        //options.addArguments("--headless=new");
         options.addArguments("--window-size=1024,768");
         options.addArguments("--disable-blink-features=AutomationControlled");
         options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
@@ -236,23 +236,23 @@ public class DomGosuslugiHousesParser {
         }
     }
 
-//    private void selectSpbFilter() {
-//        try {
-//            List<WebElement> selects = driver.findElements(By.cssSelector("select"));
-//            if (!selects.isEmpty()) {
-//                Select dropdown = new Select(selects.get(0));
-//                for (WebElement option : dropdown.getOptions()) {
-//                    if (option.getText().contains("Санкт-Петербург")) {
-//                        dropdown.selectByVisibleText(option.getText());
-//                        break;
-//                    }
-//                }
-//            }
-//            sleep(1000);
-//        } catch (Exception e) {
-//            notifyLog("Ошибка выбора фильтра: " + e.getMessage());
-//        }
-//    }
+    private void selectSpbFilter() {
+        try {
+            List<WebElement> selects = driver.findElements(By.cssSelector("select"));
+            if (!selects.isEmpty()) {
+                Select dropdown = new Select(selects.get(0));
+                for (WebElement option : dropdown.getOptions()) {
+                    if (option.getText().contains("Чукотский автономный округ")) {
+                        dropdown.selectByVisibleText(option.getText());
+                        break;
+                    }
+                }
+            }
+            sleep(1000);
+        } catch (Exception e) {
+            notifyLog("Ошибка выбора фильтра: " + e.getMessage());
+        }
+    }
 
     private void clickSearchButton() {
         try {
@@ -471,9 +471,35 @@ public class DomGosuslugiHousesParser {
                 // Игнорируем, если нет индикатора загрузки
             }
 
-            // Ждем появления карточек домов
-            wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
-                    By.cssSelector(".register-card, [ng-repeat*='house'], ef-poch-ro-row")));
+            // Ждем появления карточек домов с таймаутом и проверкой количества
+            wait.until((WebDriver d) -> {
+                try {
+                    // Проверяем, что карточки загрузились и их достаточно
+                    List<WebElement> cards = driver.findElements(
+                            By.cssSelector(".register-card[ng-repeat*='house in searchResults.items']"));
+                    return !cards.isEmpty() && cards.size() >= 50; // Минимум 50 карточек
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+
+            // Дополнительная проверка, что данные карточек загружены (не пустые адреса)
+            wait.until((WebDriver d) -> {
+                try {
+                    List<WebElement> cards = driver.findElements(
+                            By.cssSelector(".register-card[ng-repeat*='house in searchResults.items']"));
+                    if (cards.isEmpty()) return false;
+
+                    // Проверяем первую карточку на наличие адреса
+                    WebElement firstCard = cards.get(0);
+                    List<WebElement> addressElements = firstCard.findElements(By.cssSelector(
+                            ".register-card__header-title .cnt-link-hover.ng-binding"));
+                    return !addressElements.isEmpty() &&
+                           !addressElements.get(0).getText().trim().isEmpty();
+                } catch (Exception e) {
+                    return false;
+                }
+            });
 
             // Ждем, пока активная страница в пагинации станет ожидаемой
             wait.until((WebDriver d) -> {
@@ -485,12 +511,12 @@ public class DomGosuslugiHousesParser {
                 }
             });
 
-            // Дополнительная проверка, что карточки домов загрузились
-            wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(
-                    By.cssSelector(".register-card, [ng-repeat*='houses']"), 0));
+            // Финальная задержка для полной стабилизации
+            sleep(2000);
 
         } catch (Exception e) {
             notifyLog("⚠️ Ожидание загрузки страницы " + expectedPage + " завершилось с ошибкой: " + e.getMessage());
+            // Пробуем продолжить, возможно страница все же частично загружена
         }
     }
 
@@ -561,7 +587,7 @@ public class DomGosuslugiHousesParser {
         }
 
         try {
-            String fileName = "Объекты жилищного фонда СПб " + LocalDate.now().getYear() + ".xlsx";
+            String fileName = "Объекты жилищного фонда " + region + " " + LocalDate.now().getYear() + ".xlsx";
             boolean fileExists = new File(fileName).exists();
 
             Workbook workbook;
@@ -654,6 +680,12 @@ public class DomGosuslugiHousesParser {
         try {
             if (cancelRequested.get()) {
                 throw new InterruptedException("Операция отменена пользователем");
+            }
+
+            // Дополнительная проверка, что страница полностью загружена
+            if (!isPageFullyLoaded(currentPage)) {
+                notifyLog("⚠️ Страница " + currentPage + " не полностью загружена, повторная попытка...");
+                waitForPageLoad(currentPage); // Повторная попытка
             }
 
             // Ждем появления карточек домов с правильным селектором
@@ -840,29 +872,61 @@ public class DomGosuslugiHousesParser {
 
     private boolean goToNextPage() {
         try {
-            List<WebElement> currentPages = driver.findElements(By.cssSelector(".pagination .active"));
-            if (!currentPages.isEmpty()) {
-                WebElement currentPageElement = currentPages.get(0);
-                String currentPageText = currentPageElement.getText();
+            int currentPageNum = getCurrentPageNumber();
+            WebElement nextPage = driver.findElement(By.xpath("//a[text()='" + (currentPageNum + 1) + "']"));
 
-                int currentPageNum = Integer.parseInt(currentPageText);
-                WebElement nextPage = driver.findElement(By.xpath("//a[text()='" + (currentPageNum + 1) + "']"));
-                if (nextPage != null && nextPage.isEnabled()) {
-                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", nextPage);
-                    sleep(1000);
-                    nextPage.click();
+            if (nextPage != null && nextPage.isEnabled()) {
+                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", nextPage);
+                sleep(1000);
+                nextPage.click();
 
-                    // Ждем загрузки новой страницы
-                    wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
-                            By.cssSelector(".register-card[ng-repeat*='house in searchResults.items']")));
-                    sleep(2000);
+                // Ждем загрузки новой страницы с улучшенной проверкой
+                waitForPageLoad(currentPageNum + 1);
 
-                    notifyLog("➡️ Переход на страницу " + (currentPageNum + 1));
-                    return true;
-                }
+                notifyLog("➡️ Переход на страницу " + (currentPageNum + 1));
+                return true;
             }
             return false;
         } catch (Exception e) {
+            notifyLog("❌ Ошибка перехода на следующую страницу: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean isPageFullyLoaded(int expectedPage) {
+        try {
+            // Проверяем наличие карточек
+            List<WebElement> cards = driver.findElements(
+                    By.cssSelector(".register-card[ng-repeat*='house in searchResults.items']"));
+
+            if (cards.isEmpty()) {
+                notifyLog("⚠️ Карточки не найдены на странице " + expectedPage);
+                return false;
+            }
+
+            // Проверяем, что текущая страница правильная
+            int actualPage = getCurrentPageNumber();
+            if (actualPage != expectedPage) {
+                notifyLog("⚠️ Несоответствие страниц: ожидалась " + expectedPage + ", получена " + actualPage);
+                return false;
+            }
+
+            // Проверяем, что карточки содержат данные
+            WebElement firstCard = cards.get(0);
+            List<WebElement> addressElements = firstCard.findElements(By.cssSelector(
+                    ".register-card__header-title .cnt-link-hover.ng-binding"));
+
+            boolean dataLoaded = !addressElements.isEmpty() &&
+                                 !addressElements.get(0).getText().trim().isEmpty();
+
+            if (!dataLoaded) {
+                notifyLog("⚠️ Данные в карточках не загружены на странице " + expectedPage);
+            }
+
+            return dataLoaded;
+
+        } catch (Exception e) {
+            notifyLog("❌ Ошибка проверки загрузки страницы " + expectedPage + ": " + e.getMessage());
             return false;
         }
     }
