@@ -111,7 +111,7 @@ public class DomGosuslugiParser {
             checkCancelled();
 
             selectRegionFilter();
-//            selectSpbFilter();
+            //selectSpbFilter();
             checkCancelled();
 
             clickSearchButton();
@@ -241,23 +241,23 @@ public class DomGosuslugiParser {
         }
     }
 
-//    private void selectSpbFilter() {
-//        try {
-//            List<WebElement> selects = driver.findElements(By.cssSelector("select"));
-//            if (!selects.isEmpty()) {
-//                Select dropdown = new Select(selects.get(0));
-//                for (WebElement option : dropdown.getOptions()) {
-//                    if (option.getText().contains("Санкт-Петербург")) {
-//                        dropdown.selectByVisibleText(option.getText());
-//                        break;
-//                    }
-//                }
-//            }
-//            sleep(1000);
-//        } catch (Exception e) {
-//            notifyLog("Ошибка выбора фильтра: " + e.getMessage());
-//        }
-//    }
+    private void selectSpbFilter() {
+        try {
+            List<WebElement> selects = driver.findElements(By.cssSelector("select"));
+            if (!selects.isEmpty()) {
+                Select dropdown = new Select(selects.get(0));
+                for (WebElement option : dropdown.getOptions()) {
+                    if (option.getText().contains("Санкт-Петербург")) {
+                        dropdown.selectByVisibleText(option.getText());
+                        break;
+                    }
+                }
+            }
+            sleep(1000);
+        } catch (Exception e) {
+            notifyLog("Ошибка выбора фильтра: " + e.getMessage());
+        }
+    }
 
     private void clickSearchButton() {
         try {
@@ -448,7 +448,7 @@ public class DomGosuslugiParser {
         }
 
         try {
-            String fileName = "Управляющие компании СПб " + LocalDate.now().getYear() + ".xlsx";
+            String fileName = "Управляющие компании " + region + " " + LocalDate.now().getYear() + ".xlsx";
             boolean fileExists = new File(fileName).exists();
 
             Workbook workbook;

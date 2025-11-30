@@ -105,8 +105,8 @@ public class DomGosuslugiHousesParser {
             sleep(5000);
             checkCancelled();
 
-            //selectRegionFilter();
-            selectSpbFilter();
+            selectRegionFilter();
+            //selectSpbFilter();
             checkCancelled();
 
             clickSearchButton();
@@ -167,7 +167,7 @@ public class DomGosuslugiHousesParser {
 
     private ChromeOptions createChromeOptions() {
         ChromeOptions options = new ChromeOptions();
-        //options.addArguments("--headless=new");
+        options.addArguments("--headless=new");
         options.addArguments("--window-size=1024,768");
         options.addArguments("--disable-blink-features=AutomationControlled");
         options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
